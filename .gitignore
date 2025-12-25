@@ -1,0 +1,12 @@
+# ====== Result folders ======
+/result_*/
+
+# ====== PyCharm ======
+.idea/
+*.iml
+
+# ====== Python cache ======
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
