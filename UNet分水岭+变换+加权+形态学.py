@@ -13,18 +13,18 @@ from tensorflow.keras import layers
 from skimage.io import imread
 from skimage.transform import resize
 from skimage.feature import peak_local_max
-from skimage.segmentation import watershed, find_boundaries
+from skimage.segmentation import watershed
 from skimage.measure import regionprops
 from skimage.morphology import h_minima
 from scipy import ndimage as ndi
+from skimage.segmentation import find_boundaries
 
-# ======================
 # 基本配置
-# ======================
 A=0.9
 IMG_SIZE = 256
 TRAIN_PATH = "../data-science-bowl-2018/stage1_train/"
-RESULT_DIR = f"result_UNet变换加权形态_{A}_Binary"
+# RESULT_DIR = f"result_UNet变换加权形态_{A}_Binary"
+RESULT_DIR = "result_UNet变换加权形态"
 MODEL_PATH = "unet_nuclei.keras"
 
 os.makedirs(RESULT_DIR, exist_ok=True)
@@ -34,32 +34,49 @@ random.seed(seed)
 np.random.seed(seed)
 tf.random.set_seed(seed)
 
-# ======================
-# 降噪 & 背景抑制
-# ======================
+# 图像降噪函数（这里有降噪是因为对于梯度图像，噪声较大）
 def denoise_image(img):
     denoised = cv2.fastNlMeansDenoisingColored(
-        img, None, h=10, hColor=10,
-        templateWindowSize=7, searchWindowSize=21
+        img,
+        None,
+        h=10,# 亮度去噪强度
+        hColor=10,# 颜色去噪强度
+        templateWindowSize=7,
+        searchWindowSize=21
     )
+
+    # 轻度高斯平滑
     denoised = cv2.GaussianBlur(denoised, (3, 3), 0)
+
     return denoised
 
 def suppress_background(img):
     gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25, 25))
-    background = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+
+    # 结构元素大小约等于背景变化尺度
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_ELLIPSE, (25, 25)
+    )
+
+    background = cv2.morphologyEx(
+        gray, cv2.MORPH_OPEN, kernel
+    )
+
+    # 背景抑制
     suppressed = cv2.subtract(gray, background)
+
+    # 归一化
     suppressed = suppressed.astype(np.float32)
-    suppressed = (suppressed - suppressed.min()) / (suppressed.max() - suppressed.min() + 1e-8)
+    suppressed = (suppressed - suppressed.min()) / (
+        suppressed.max() - suppressed.min() + 1e-8
+    )
+
     return suppressed
 
 def smooth_image(img_float):
     return cv2.GaussianBlur(img_float, (3, 3), 0.5)
 
-# ======================
-# 数据划分（只用 test）
-# ======================
+# 读取所有 ID 并划分
 ids = sorted(next(os.walk(TRAIN_PATH))[1])
 n_total = len(ids)
 
@@ -67,9 +84,7 @@ train_ids = ids[:int(0.7 * n_total)]
 val_ids   = ids[int(0.7 * n_total):int(0.85 * n_total)]
 test_ids  = ids[int(0.85 * n_total):]
 
-# ======================
-# 数据读取（训练也用降噪）
-# ======================
+# 数据读取函数
 def load_data(id_list):
     X = np.zeros((len(id_list), IMG_SIZE, IMG_SIZE, 3), dtype=np.uint8)
     Y = np.zeros((len(id_list), IMG_SIZE, IMG_SIZE, 1), dtype=np.uint8)
@@ -79,8 +94,6 @@ def load_data(id_list):
 
         img = imread(path + "/images/" + id_ + ".png")[:, :, :3]
         img = resize(img, (IMG_SIZE, IMG_SIZE), preserve_range=True).astype(np.uint8)
-
-        # ⭐ 降噪
         img = denoise_image(img)
         X[i] = img
 
@@ -94,9 +107,7 @@ def load_data(id_list):
 
     return X, Y
 
-# ======================
-# UNet（结构不变）
-# ======================
+# U-Net
 def conv_block(x, filters):
     x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
     x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
@@ -136,12 +147,11 @@ u9 = layers.concatenate([u9, c1])
 c9 = conv_block(u9, 16)
 
 outputs = layers.Conv2D(1, 1, activation="sigmoid")(c9)
+
 model = keras.Model(inputs, outputs)
 model.compile(optimizer="adam", loss="binary_crossentropy")
 
-# ======================
-# 训练 or 加载
-# ======================
+# 训练/加载
 if os.path.exists(MODEL_PATH):
     print("Loading existing model...")
     model = keras.models.load_model(MODEL_PATH)
@@ -159,9 +169,7 @@ else:
     )
     model.save(MODEL_PATH)
 
-# ======================
-# Test：Morphology-aware Watershed
-# ======================
+# 分水岭算法开始
 print("Processing test set...")
 
 relative_errors=[]
@@ -171,9 +179,8 @@ for id_ in tqdm(test_ids):
 
     img = imread(f"{path}/images/{id_}.png")[:, :, :3]
     img = resize(img, (IMG_SIZE, IMG_SIZE), preserve_range=True).astype(np.uint8)
-    img = denoise_image(img)
 
-    # GT mask（仅用于显示）
+    # GT mask（答案）
     gt_mask = np.zeros((IMG_SIZE, IMG_SIZE), dtype=np.uint8)
     gt_count=0
     for m in os.listdir(path + "/masks/"):
@@ -183,15 +190,18 @@ for id_ in tqdm(test_ids):
         gt_mask = np.maximum(gt_mask, msk)
         gt_count += 1
 
-    # ---------- UNet ----------
-    pred_prob = model.predict(img[None, ...], verbose=0)[0, :, :, 0]
-    binary = pred_prob > 0.5
+    # 先降噪
+    img = denoise_image(img)
 
-    # ---------- 连通域 + 距离 ----------
+    # U-Net预测图
+    pred_prob = model.predict(img[None, ...], verbose=0)[0, :, :, 0]
+
+    # 生成Binary和Distance
+    binary = pred_prob > 0.5
     distance = ndi.distance_transform_edt(binary)
     labeled_cc, num_cc = ndi.label(binary)
 
-    # ---------- Morphology-aware markers ----------
+    # 改进分水岭+变换
     markers = np.zeros_like(distance, dtype=np.int32)
     current_label = 1
 
@@ -204,14 +214,14 @@ for id_ in tqdm(test_ids):
 
         dist_region = distance * region
 
-        # ===== 形态学 veto（关键）=====
+        # 形态学处理
         if props.solidity > 0.9 and props.eccentricity < 0.75:
             r, c = np.unravel_index(np.argmax(dist_region), dist_region.shape)
             markers[r, c] = current_label
             current_label += 1
             continue
 
-        # ===== 允许分裂 =====
+        # 允许分裂
         median_radius = np.median(dist_region[region])
         min_distance = int(np.clip(A * median_radius, 4, 10))
 
@@ -222,14 +232,14 @@ for id_ in tqdm(test_ids):
             labels=region
         )
 
+        # 写入 markers
         for r, c in coords:
             markers[r, c] = current_label
             current_label += 1
-
     markers = ndi.binary_dilation(markers > 0, iterations=2)
     markers = ndi.label(markers)[0]
 
-    # ---------- Gradient ----------
+    # 梯度
     gx = ndi.sobel(pred_prob, axis=0)
     gy = ndi.sobel(pred_prob, axis=1)
     gradient = np.hypot(gx, gy)
@@ -239,37 +249,37 @@ for id_ in tqdm(test_ids):
                 ndi.binary_erosion(binary, iterations=2)
     gradient *= edge_band
 
-    # ---------- Image term ----------
     image_term = suppress_background(img)
     image_term = smooth_image(image_term)
 
-    # ---------- Elevation ----------
+    # 加权
     alpha = 0.01
     elevation = alpha * gradient + (1 - alpha) * image_term
     elevation /= (elevation.max() + 1e-8)
     elevation = h_minima(elevation, h=0.01)
 
-    # ---------- Watershed ----------
+    # 分水岭
     labels = watershed(
         elevation,
         markers,
         mask=binary
     )
-
-    pred_count=len(regionprops(labels))
-    if gt_count>0:
-        rel_err=abs(pred_count-gt_count)/gt_count
+    pred_count = len(regionprops(labels))
+    if gt_count > 0:
+        rel_err = abs(pred_count - gt_count) / gt_count
         relative_errors.append(rel_err)
 
-    # ---------- 可视化 ----------
+    # 可视化
     vis = img.copy()
+    vis[labels == 0] = vis[labels == 0] * 0.3
     boundaries = find_boundaries(labels, mode="outer")
     vis[boundaries] = [255, 0, 0]
 
     fig, axs = plt.subplots(1, 4, figsize=(14, 4))
     axs[0].imshow(img); axs[0].set_title("Denoised Image")
     axs[1].imshow(gt_mask, cmap="gray"); axs[1].set_title("GT Mask")
-    axs[2].imshow(binary, cmap="magma"); axs[2].set_title("Binary")
+    axs[2].imshow(elevation, cmap="magma"); axs[2].set_title("Elevation")
+    # axs[2].imshow(binary, cmap="magma"); axs[2].set_title("Binary")
     axs[3].imshow(vis); axs[3].set_title(f"Pred {pred_count}/{gt_count}")
 
     for ax in axs:

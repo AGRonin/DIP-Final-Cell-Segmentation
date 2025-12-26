@@ -12,14 +12,14 @@ from tensorflow.keras import layers
 from skimage.io import imread
 from skimage.transform import resize
 from skimage.feature import peak_local_max
-from skimage.segmentation import watershed, find_boundaries
+from skimage.segmentation import watershed
 from skimage.measure import regionprops
 from skimage.morphology import h_minima
 from scipy import ndimage as ndi
+from skimage.segmentation import find_boundaries
 
-# ======================
 # 基本配置
-# ======================
+A=0.9
 IMG_SIZE = 256
 TRAIN_PATH = "../data-science-bowl-2018/stage1_train/"
 RESULT_DIR = "result_改进变换形态"
@@ -29,16 +29,16 @@ seed = 42
 random.seed(seed)
 np.random.seed(seed)
 tf.random.set_seed(seed)
+
+# 读取所有 ID 并划分
 ids = sorted(next(os.walk(TRAIN_PATH))[1])
-n = len(ids)
+n_total = len(ids)
 
-train_ids = ids[:int(0.7*n)]
-val_ids   = ids[int(0.7*n):int(0.85*n)]
-test_ids  = ids[int(0.85*n):]
+train_ids = ids[:int(0.7 * n_total)]
+val_ids   = ids[int(0.7 * n_total):int(0.85 * n_total)]
+test_ids  = ids[int(0.85 * n_total):]
 
-# ======================
-# Test：Morphology-aware Watershed
-# ======================
+# 分水岭算法开始
 print("Processing test set...")
 
 relative_errors=[]
@@ -49,7 +49,7 @@ for id_ in tqdm(test_ids):
     img = np.array(img_pil)          # 转为 numpy 数组
     img = img[:, :, :3]
 
-    # GT mask（仅用于显示）
+    # GT mask（答案）
     gt_mask = np.zeros((IMG_SIZE, IMG_SIZE), dtype=np.uint8)
     gt_count=0
     for m in os.listdir(path + "/masks/"):
@@ -68,15 +68,15 @@ for id_ in tqdm(test_ids):
 
     # 形态学清理
     kernel = np.ones((3, 3), np.uint8)
-    # 1. 腐蚀去孤立点
+
+    # 腐蚀去孤立点
     binary = cv2.erode(binary_0.astype(np.uint8), kernel, iterations=1)
 
-    # 2. 膨胀恢复主体
+    # 膨胀恢复主体
     binary = cv2.dilate(binary, kernel, iterations=1)
-
     binary = binary.astype(bool)
 
-    # 3. 连通域面积过滤
+    # 连通域面积过滤
     labeled, num = ndi.label(binary)
     binary_clean = np.zeros_like(binary)
 
@@ -86,14 +86,12 @@ for id_ in tqdm(test_ids):
             binary_clean |= region
 
     binary = binary_clean
-
-
     binary = binary.astype(bool)
 
     distance = ndi.distance_transform_edt(binary)
     labeled_cc, num_cc = ndi.label(binary)
 
-    # ---------- Morphology-aware markers ----------
+    # 改进分水岭+变换
     markers = np.zeros_like(distance, dtype=np.int32)
     current_label = 1
 
@@ -106,16 +104,16 @@ for id_ in tqdm(test_ids):
 
         dist_region = distance * region
 
-        # ===== 形态学 veto（关键）=====
+        # 形态学处理
         if props.solidity > 0.9 and props.eccentricity < 0.75:
             r, c = np.unravel_index(np.argmax(dist_region), dist_region.shape)
             markers[r, c] = current_label
             current_label += 1
             continue
 
-        # ===== 允许分裂 =====
+        # 允许分裂
         median_radius = np.median(dist_region[region])
-        min_distance = int(np.clip(0.5 * median_radius, 4, 10))
+        min_distance = int(np.clip(A * median_radius, 4, 10))
 
         coords = peak_local_max(
             dist_region,
@@ -124,13 +122,14 @@ for id_ in tqdm(test_ids):
             labels=region
         )
 
+        # 写入 markers
         for r, c in coords:
             markers[r, c] = current_label
             current_label += 1
-
     markers = ndi.binary_dilation(markers > 0, iterations=2)
     markers = ndi.label(markers)[0]
 
+    # 梯度
     gx = ndi.sobel(binary, axis=0)
     gy = ndi.sobel(binary, axis=1)
     gradient = np.hypot(gx, gy)
@@ -150,14 +149,14 @@ for id_ in tqdm(test_ids):
         markers,
         mask=binary
     )
-
-    pred_count=len(regionprops(labels))
-    if gt_count>0:
-        rel_err=abs(pred_count-gt_count)/gt_count
+    pred_count = len(regionprops(labels))
+    if gt_count > 0:
+        rel_err = abs(pred_count - gt_count) / gt_count
         relative_errors.append(rel_err)
 
-    # ---------- 可视化 ----------
+    # 可视化
     vis = img.copy()
+    vis[labels == 0] = vis[labels == 0] * 0.3
     boundaries = find_boundaries(labels, mode="outer")
     vis[boundaries] = [255, 0, 0]
 
@@ -165,6 +164,7 @@ for id_ in tqdm(test_ids):
     axs[0].imshow(img); axs[0].set_title("Denoised Image")
     axs[1].imshow(gt_mask, cmap="gray"); axs[1].set_title("GT Mask")
     axs[2].imshow(elevation, cmap="magma"); axs[2].set_title("Elevation")
+    # axs[2].imshow(binary, cmap="magma"); axs[2].set_title("Binary")
     axs[3].imshow(vis); axs[3].set_title(f"Pred {pred_count}/{gt_count}")
 
     for ax in axs:

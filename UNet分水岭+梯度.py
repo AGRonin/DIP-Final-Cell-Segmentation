@@ -20,7 +20,7 @@ from skimage.segmentation import find_boundaries
 # 基本配置
 IMG_SIZE = 256
 TRAIN_PATH = "../data-science-bowl-2018/stage1_train/"
-RESULT_DIR = "result_UNet"
+RESULT_DIR = "result_UNet梯度"
 MODEL_PATH = "unet_nuclei.keras"
 
 os.makedirs(RESULT_DIR, exist_ok=True)
@@ -29,6 +29,22 @@ seed = 42
 random.seed(seed)
 np.random.seed(seed)
 tf.random.set_seed(seed)
+
+# 图像降噪函数（这里有降噪是因为对于梯度图像，噪声较大）
+def denoise_image(img):
+    denoised = cv2.fastNlMeansDenoisingColored(
+        img,
+        None,
+        h=10,# 亮度去噪强度
+        hColor=10,# 颜色去噪强度
+        templateWindowSize=7,
+        searchWindowSize=21
+    )
+
+    # 轻度高斯平滑
+    denoised = cv2.GaussianBlur(denoised, (3, 3), 0)
+
+    return denoised
 
 # 读取所有 ID 并划分
 ids = sorted(next(os.walk(TRAIN_PATH))[1])
@@ -47,7 +63,8 @@ def load_data(id_list):
         path = os.path.join(TRAIN_PATH, id_)
 
         img = imread(path + "/images/" + id_ + ".png")[:, :, :3]
-        img = resize(img, (IMG_SIZE, IMG_SIZE), preserve_range=True)
+        img = resize(img, (IMG_SIZE, IMG_SIZE), preserve_range=True).astype(np.uint8)
+        img = denoise_image(img)
         X[i] = img
 
         mask = np.zeros((IMG_SIZE, IMG_SIZE, 1), dtype=np.uint8)
@@ -143,6 +160,9 @@ for id_ in tqdm(test_ids):
         gt_mask = np.maximum(gt_mask, msk)
         gt_count += 1
 
+    # 先降噪
+    img = denoise_image(img)
+
     # U-Net预测图
     pred_prob = model.predict(img[None, ...], verbose=0)[0, :, :, 0]
 
@@ -153,19 +173,25 @@ for id_ in tqdm(test_ids):
     # 改进分水岭：通过局部最大确定分水点
     coords = peak_local_max(
         distance,
-        min_distance=8,
-        #threshold_abs=0.2 * distance.max(),
+        min_distance=5,
+        threshold_abs=0.1 * distance.max(),
         labels=binary
     )
 
     markers = np.zeros_like(distance, dtype=np.int32)
     for i, (r, c) in enumerate(coords, start=1):
         markers[r, c] = i
-    markers = ndi.label(markers)[0]
+    markers = ndi.label(markers > 0)[0]
+
+    # 梯度
+    gx = ndi.sobel(pred_prob, axis=0)
+    gy = ndi.sobel(pred_prob, axis=1)
+    gradient = np.hypot(gx, gy)
+    gradient /= (gradient.max() + 1e-8)
 
     # 分水岭
     labels = watershed(
-        -distance,
+        gradient,
         markers,
         mask=binary
     )
@@ -181,9 +207,9 @@ for id_ in tqdm(test_ids):
     vis[boundaries] = [255, 0, 0]
 
     fig, axs = plt.subplots(1, 4, figsize=(14, 4))
-    axs[0].imshow(img); axs[0].set_title("Original")
+    axs[0].imshow(img); axs[0].set_title("Denoised Image")
     axs[1].imshow(gt_mask, cmap="gray"); axs[1].set_title("GT Mask")
-    axs[2].imshow(pred_prob, cmap="jet"); axs[2].set_title("U-Net Prob")
+    axs[2].imshow(gradient, cmap="magma"); axs[2].set_title("Gradient")
     axs[3].imshow(vis); axs[3].set_title(f"Pred {pred_count}/{gt_count}")
 
     for ax in axs:

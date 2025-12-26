@@ -12,13 +12,12 @@ from tensorflow.keras import layers
 from skimage.io import imread
 from skimage.transform import resize
 from skimage.feature import peak_local_max
-from skimage.segmentation import watershed, find_boundaries
+from skimage.segmentation import watershed
 from skimage.measure import regionprops
 from scipy import ndimage as ndi
+from skimage.segmentation import find_boundaries
 
-# ======================
 # 基本配置
-# ======================
 IMG_SIZE = 256
 TRAIN_PATH = "../data-science-bowl-2018/stage1_train/"
 RESULT_DIR = "result_UNet变换梯度"
@@ -31,31 +30,23 @@ random.seed(seed)
 np.random.seed(seed)
 tf.random.set_seed(seed)
 
-# ======================
-# 图像降噪函数（关键新增）
-# ======================
+# 图像降噪函数（这里有降噪是因为对于梯度图像，噪声较大）
 def denoise_image(img):
-    """
-    img: uint8, (H,W,3)
-    """
-    # Non-local Means（保边）
     denoised = cv2.fastNlMeansDenoisingColored(
         img,
         None,
-        h=10,          # 亮度去噪强度
-        hColor=10,     # 颜色去噪强度
+        h=10,# 亮度去噪强度
+        hColor=10,# 颜色去噪强度
         templateWindowSize=7,
         searchWindowSize=21
     )
 
-    # 轻度高斯平滑（抑制残余噪声）
+    # 轻度高斯平滑
     denoised = cv2.GaussianBlur(denoised, (3, 3), 0)
 
     return denoised
 
-# ======================
-# 数据划分
-# ======================
+# 读取所有 ID 并划分
 ids = sorted(next(os.walk(TRAIN_PATH))[1])
 n_total = len(ids)
 
@@ -63,9 +54,7 @@ train_ids = ids[:int(0.7 * n_total)]
 val_ids   = ids[int(0.7 * n_total):int(0.85 * n_total)]
 test_ids  = ids[int(0.85 * n_total):]
 
-# ======================
-# 数据读取（训练也用降噪）
-# ======================
+# 数据读取函数
 def load_data(id_list):
     X = np.zeros((len(id_list), IMG_SIZE, IMG_SIZE, 3), dtype=np.uint8)
     Y = np.zeros((len(id_list), IMG_SIZE, IMG_SIZE, 1), dtype=np.uint8)
@@ -88,9 +77,7 @@ def load_data(id_list):
 
     return X, Y
 
-# ======================
-# UNet
-# ======================
+# U-Net
 def conv_block(x, filters):
     x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
     x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
@@ -134,9 +121,7 @@ outputs = layers.Conv2D(1, 1, activation="sigmoid")(c9)
 model = keras.Model(inputs, outputs)
 model.compile(optimizer="adam", loss="binary_crossentropy")
 
-# ======================
-# 训练 or 加载模型
-# ======================
+# 训练/加载
 if os.path.exists(MODEL_PATH):
     print("Loading existing model...")
     model = keras.models.load_model(MODEL_PATH)
@@ -154,9 +139,7 @@ else:
     )
     model.save(MODEL_PATH)
 
-# ======================
-# Test：降噪 + 梯度分水岭
-# ======================
+# 分水岭算法开始
 print("Processing test set...")
 
 relative_errors=[]
@@ -167,44 +150,71 @@ for id_ in tqdm(test_ids):
     img = imread(f"{path}/images/{id_}.png")[:, :, :3]
     img = resize(img, (IMG_SIZE, IMG_SIZE), preserve_range=True).astype(np.uint8)
 
-    # GT mask
+    # GT mask（答案）
     gt_mask = np.zeros((IMG_SIZE, IMG_SIZE), dtype=np.uint8)
     gt_count=0
     for m in os.listdir(path + "/masks/"):
         msk = imread(path + "/masks/" + m)
         msk = resize(msk, (IMG_SIZE, IMG_SIZE), preserve_range=True)
-        msk=msk*random.randint(64,191)
+        msk = msk * random.randint(64, 191)
         gt_mask = np.maximum(gt_mask, msk)
         gt_count += 1
 
-    #测试阶段同样降噪
+    # 先降噪
     img = denoise_image(img)
 
-    # ---------- UNet ----------
+    # U-Net预测图
     pred_prob = model.predict(img[None, ...], verbose=0)[0, :, :, 0]
+
+    # 生成Binary和Distance
     binary = pred_prob > 0.5
-
-    # ---------- Markers ----------
     distance = ndi.distance_transform_edt(binary)
-    local_max = peak_local_max(
-        distance,
-        min_distance=5,
-        threshold_abs=0.1 * distance.max(),
-        labels=binary
-    )
 
+    # 改进分水岭+变换
     markers = np.zeros_like(distance, dtype=np.int32)
-    for i, (r, c) in enumerate(local_max, start=1):
-        markers[r, c] = i
-    markers = ndi.label(markers > 0)[0]
+    current_label = 1
 
-    # ---------- 梯度 ----------
+    # 按连通区域划分候选核
+    labeled_cc, num_cc = ndi.label(binary)
+
+    for cc in range(1, num_cc + 1):
+        # region相当于一个对于当前区域的mask
+        region = (labeled_cc == cc)
+
+        # 过滤极小区域
+        if region.sum() < 20:
+            continue
+
+        # 当前区域的距离图
+        dist_region = distance * region
+
+        # 自适应min_distance
+        local_radius = np.max(dist_region)
+        min_dist = int(0.8 * local_radius)
+
+        # 合理下限，防止过小
+        min_dist = max(min_dist, 3)
+
+        # 在该区域内找局部极大值
+        coords = peak_local_max(
+            dist_region,
+            min_distance=min_dist,
+            threshold_abs=0.2 * distance.max(),
+            labels=binary
+        )
+
+        # 写入 markers
+        for r, c in coords:
+            markers[r, c] = current_label
+            current_label += 1
+
+    # 梯度
     gx = ndi.sobel(pred_prob, axis=0)
     gy = ndi.sobel(pred_prob, axis=1)
     gradient = np.hypot(gx, gy)
     gradient /= (gradient.max() + 1e-8)
 
-    # ---------- Watershed ----------
+    # 分水岭
     labels = watershed(
         gradient,
         markers,
@@ -215,7 +225,7 @@ for id_ in tqdm(test_ids):
         rel_err = abs(pred_count - gt_count) / gt_count
         relative_errors.append(rel_err)
 
-    # ---------- 可视化 ----------
+    # 可视化
     vis = img.copy()
     vis[labels == 0] = vis[labels == 0] * 0.3
     boundaries = find_boundaries(labels, mode="outer")
@@ -226,6 +236,7 @@ for id_ in tqdm(test_ids):
     axs[1].imshow(gt_mask, cmap="gray"); axs[1].set_title("GT Mask")
     axs[2].imshow(gradient, cmap="magma"); axs[2].set_title("Gradient")
     axs[3].imshow(vis); axs[3].set_title(f"Pred {pred_count}/{gt_count}")
+
     for ax in axs:
         ax.axis("off")
 

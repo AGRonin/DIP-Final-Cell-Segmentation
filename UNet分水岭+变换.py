@@ -17,9 +17,7 @@ from skimage.measure import regionprops
 from scipy import ndimage as ndi
 from skimage.segmentation import find_boundaries
 
-# ======================
 # 基本配置
-# ======================
 IMG_SIZE = 256
 TRAIN_PATH = "../data-science-bowl-2018/stage1_train/"
 RESULT_DIR = "result_UNet变换"
@@ -32,9 +30,7 @@ random.seed(seed)
 np.random.seed(seed)
 tf.random.set_seed(seed)
 
-# ======================
 # 读取所有 ID 并划分
-# ======================
 ids = sorted(next(os.walk(TRAIN_PATH))[1])
 n_total = len(ids)
 
@@ -42,9 +38,7 @@ train_ids = ids[:int(0.7 * n_total)]
 val_ids   = ids[int(0.7 * n_total):int(0.85 * n_total)]
 test_ids  = ids[int(0.85 * n_total):]
 
-# ======================
 # 数据读取函数
-# ======================
 def load_data(id_list):
     X = np.zeros((len(id_list), IMG_SIZE, IMG_SIZE, 3), dtype=np.uint8)
     Y = np.zeros((len(id_list), IMG_SIZE, IMG_SIZE, 1), dtype=np.uint8)
@@ -66,9 +60,7 @@ def load_data(id_list):
 
     return X, Y
 
-# ======================
-# UNet 模型
-# ======================
+# U-Net
 def conv_block(x, filters):
     x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
     x = layers.Conv2D(filters, 3, activation="relu", padding="same")(x)
@@ -112,9 +104,7 @@ outputs = layers.Conv2D(1, 1, activation="sigmoid")(c9)
 model = keras.Model(inputs, outputs)
 model.compile(optimizer="adam", loss="binary_crossentropy")
 
-# ======================
-# 训练 or 加载模型
-# ======================
+# 训练/加载
 if os.path.exists(MODEL_PATH):
     print("Loading existing model...")
     model = keras.models.load_model(MODEL_PATH)
@@ -132,9 +122,7 @@ else:
     )
     model.save(MODEL_PATH)
 
-# ======================
-# Test 集：UNet + Watershed
-# ======================
+# 分水岭算法开始
 print("Processing test set...")
 
 relative_errors=[]
@@ -145,41 +133,42 @@ for id_ in tqdm(test_ids):
     img = imread(f"{path}/images/{id_}.png")[:, :, :3]
     img = resize(img, (IMG_SIZE, IMG_SIZE), preserve_range=True).astype(np.uint8)
 
-    # GT mask
+    # GT mask（答案）
     gt_mask = np.zeros((IMG_SIZE, IMG_SIZE), dtype=np.uint8)
     gt_count=0
     for m in os.listdir(path + "/masks/"):
         msk = imread(path + "/masks/" + m)
         msk = resize(msk, (IMG_SIZE, IMG_SIZE), preserve_range=True)
-        msk=msk*random.randint(64,191)
+        msk = msk * random.randint(64, 191)
         gt_mask = np.maximum(gt_mask, msk)
         gt_count += 1
 
-    # UNet 预测
+    # U-Net预测图
     pred_prob = model.predict(img[None, ...], verbose=0)[0, :, :, 0]
 
-    # Watershed
+    # 生成Binary和Distance
     binary = pred_prob > 0.5
     distance = ndi.distance_transform_edt(binary)
 
-    # 自适应 markers（关键改动）
+    # 改进分水岭+变换
     markers = np.zeros_like(distance, dtype=np.int32)
     current_label = 1
 
-    # 先按连通区域划分候选核
+    # 按连通区域划分候选核
     labeled_cc, num_cc = ndi.label(binary)
 
     for cc in range(1, num_cc + 1):
+        # region相当于一个对于当前区域的mask
         region = (labeled_cc == cc)
 
-        # 过滤极小区域（噪声）
+        # 过滤极小区域
         if region.sum() < 20:
             continue
 
         # 当前区域的距离图
         dist_region = distance * region
 
-        # 自适应 min_distance（和核大小相关）
+        # 自适应min_distance
         local_radius = np.max(dist_region)
         min_dist = int(0.8 * local_radius)
 
@@ -199,7 +188,7 @@ for id_ in tqdm(test_ids):
             markers[r, c] = current_label
             current_label += 1
 
-    # Watershed（只在核区域内）
+    # 分水岭
     labels = watershed(
         -distance,
         markers,
