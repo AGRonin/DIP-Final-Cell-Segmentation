@@ -98,6 +98,13 @@ The LaTeX template for Journal of Tsinghua University (Science and Technology)]
 \setlength{\abovecaptionskip}{0pt}
 \setlength{\belowcaptionskip}{0pt}
 
+% ===== 修复图编号与引用不一致问题 =====
+\makeatletter
+\renewcommand{\thefigure}{\thesection.\arabic{figure}}
+\renewcommand{\fnum@figure}{\figurename~\thefigure}
+\@addtoreset{figure}{section}
+\makeatother
+
 % \precaption{\vspace{-1em}}
 
 
@@ -116,11 +123,11 @@ The LaTeX template for Journal of Tsinghua University (Science and Technology)]
                                    {1.5ex }%
                                    {1.5ex}%
                                    {\normalfont\bfseries\xiaosihao}}
-\renewcommand\subsection{\@startsection {subsection}{1}{\z@}%
+\renewcommand\subsection{\@startsection {subsection}{2}{\z@}%
                                    {-1pt }%
                                    {1pt}%
                                    {\normalfont\bfseries\wuhao}}
-\renewcommand\subsubsection{\@startsection {subsubsection}{1}{\z@}%
+\renewcommand\subsubsection{\@startsection {subsubsection}{3}{\z@}%
                                    {-1pt }%
                                    {1pt}%
                                    {\normalfont\bfseries\kai\wuhao}}

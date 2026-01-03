@@ -1,1 +1,11 @@
 \subsection{U-Net模型讲解} %ybw
+U-Net是一种针对生物医学图像分割任务的卷积神经网络架构，由Olaf Ronneberger等人于2015年提出\textsuperscript{\cite{unet}}。如图~\ref{fig:unet}所示，该模型由两部分组成：一个收缩路径用于捕获上下文信息，和一个对称的扩展路径用于精确的局部化。这种结构使得网络能够在有限的训练样本下，提供高精度的分割结果。U-Net的关键设计思想是通过上采样操作恢复高分辨率特征，并与收缩路径中的相应特征图进行拼接，从而提高分割的精确度。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/unet模型.png}
+\bicaption[fig:unet]{图}{\centering U-Net模型原理示意图}{Fig.}{\centering Schematic Diagram of the U-Net Model}
+\end{figure}
+
+U-Net的网络结构没有全连接层，而是通过卷积层逐步提升图像的分辨率。在训练过程中，U-Net采用了数据增强技术，这使得网络能够更好地学习到图像中的变形特征，增强其鲁棒性和泛化能力。该架构被广泛应用于多种生物医学图像分割任务，优势在于即使在训练数据较少的情况下，依然能够提供高质量的分割效果，并且具有较快的处理速度。
+
