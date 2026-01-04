@@ -11,10 +11,56 @@
 \begin{figure}[htbp]
 \centering
 \includegraphics[width=\linewidth,trim=0 0 0 0]{./image/U-Net+自适应分水岭+原图总结果.png}
-\bicaption[fig:unet+zi+yuan:totalresult]{图}{\centering 改进的基于U-Net做前景标记的自适应分水岭结果}{Fig.}{\centering The Result of Improved adaptive watershed with U-Net foreground markers}
+\bicaption[fig:unet+zi+yuan:totalresult]{图}{\centering 改进的基于U-Net做前景标记的自适应分水岭结果}{Fig.}{\centering The Result of Improved Adaptive Watershed with U-Net Foreground Markers}
 \end{figure}
 
-首先，从分割细胞数量平均相对误差来看，其结果相较于改进的自适应分水岭（基于原图）结果，在其他变量均不变的情况下，从0.2318提升降低到了0.1746。这是一个十分显著的提升。观察结果图，我们可以看到
+首先，从分割细胞数量平均相对误差来看，其结果相较于改进的自适应分水岭（基于原图）结果，在其他变量均不变的情况下，从0.2318提升降低到了0.1746。这是一个十分显著的提升。观察结果图，我们可以看到，其分割结果好了许多，尤其是第三、四图。第三图的左下角部分的光线没有被识别为细胞进行分割。第四图没有被完全整体识别为一个细胞，其环形结构被识别，部分边界被分开。第一、二图的结果也比之前的要更好，一部分连结细胞被分开。但是仍然存一些欠分割问题。
 
-%这一部分由ybw写，合理分段，subsection代表一、1.这个级别
-主要内容应当包括：U-Net系列全部、后续
+\subsection{使用变值方法基于细胞大小进行注水点选取}
+
+如上文所言，我们的自适应分水岭算法是根据极大值点确定注水点的，其中有一定的要求，比如说min\_distance代表如果两个极大值点的差距小于min\_distance的话就不将其视为两个。那么这里我们发现，这对于不同细胞的适应能力是较差的。有的细胞比较大，那这个数值就应当相应的提高，反之则应当相应变小。所以接下来我们使用变值方法决定min\_distance。
+
+这我们定义，min\_distance是0.8倍的最大距离（后续0.8会进行修改，在最后进行消融实验）。实验结果如图~\ref{fig:unet+zi+bian+yuan:totalresult}。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/U-Net+自适应分水岭+变值+原图总结果.png}
+\bicaption[fig:unet+zi+bian+yuan:totalresult]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的自适应分水岭结果}{Fig.}{\centering The Result of U-Net-based Adaptive Watershed with Adaptive Thresholds}
+\end{figure}
+
+从分割细胞数量平均相对误差来看，其达到0.1721，相比前文有所增长但幅度不大。从结果图来看，其对第二图的结果进行了尤其的改变，分割更多了，解决了一定的欠分割问题。与此同时，其导致了过分割与欠分割并存的问题。
+
+\subsection{使用梯度作为分水岭图像}
+
+我们再来尝试梯度图像。在本章前半部分，在基于二值化的分割方法之中，我们发现梯度对于结果的影响几乎没有。这是真的吗？如果是这样的话为什么教材中会写一般使用梯度图像进行分水岭呢？于是在我们使用U-Net做前景标记之后，我们决定使用梯度图像看一下效果。结果如图~\ref{fig:unet+zi+bian+grad:totalresult}。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/U-Net+自适应分水岭+变值+梯度总结果.png}
+\bicaption[fig:unet+zi+bian+grad:totalresult]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度图像的自适应分水岭结果}{Fig.}{\centering The Result of U-Net-based Adaptive Watershed with Adaptive Thresholds and Gradient Images}
+\end{figure}
+
+从分割细胞数量平均相对误差来看，其达到0.1346，相较前文有较大的提升。从结果图上来看，其更清晰的关注到了边界，开始关注内部的线条。但是，其对于概率图变色过于敏感可能导致结果不够好，如第四图出现从中间直接连到边界的不完全分割情况。
+
+\subsection{使用梯度作为分水岭图像}
+既然梯度单独不行，那么我们同时考虑梯度和原始概率图，将二者加权以期待更好的结果。结果如图~\ref{fig:unet+zi+bian+quan:totalresult}。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/U-Net+自适应分水岭+变值+加权总结果.png}
+\bicaption[fig:unet+zi+bian+quan:totalresult]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果}{Fig.}{\centering The Result of U-Net-based Adaptive Watershed Using Gradient–Probability Weighted Images}
+\end{figure}
+
+从分割细胞数量平均相对误差来看，其达到0.1323，相较前文又有一定的提升。从结果图上来看，其改进了从中间直接连到边界的不完全分割情况，分割结果越来越好。但是，注意第一图中下部分，出现“甜甜圈”现象。即，对于细胞和细胞核，呈现从细胞核到细胞边缘被切成多份的情况。
+
+\subsection{使用形态学方法改善“甜甜圈”问题}
+
+我们引入形态学内容来改进“甜甜圈”现象。当一个分割结果形状接近圆、椭圆且离心率较小的时候，我们认为这已经是一个分割好的细胞了不再需要进行分割。其结果如图~\ref{fig:unet+zi+bian+xing+quan:totalresult}。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/U-Net+自适应分水岭+变值+形态+加权总结果.png}
+\bicaption[fig:unet+zi+bian+xing+quan:totalresult]{图}{\centering 改进的基于U-Net做前景标记的加入形态学判断的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果}{Fig.}{\centering The Result of U-Net-based Adaptive Watershed with Morphology and Weighted Images}
+\end{figure}
+
+从分割细胞数量平均相对误差来看，其变差了一点，变为0.1334。但是从结果图上来看，其变好了一些，第一图的“甜甜圈”现象被正确解决。详细分析见本文第5章。
