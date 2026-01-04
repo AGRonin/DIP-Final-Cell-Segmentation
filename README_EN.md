@@ -96,7 +96,7 @@ result_*/
 ### Quantitative Evaluation Metric
 
 For each test image, this project outputs a comparison between the predicted number of cells and the ground-truth number of cells.
-The average relative error at the test-set level is used as the quantitative evaluation metric.
+The average relative error at the test-set is used as the quantitative evaluation metric.
 
 ### Environment and Dependencies
 
