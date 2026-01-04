@@ -69,7 +69,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %      中文摘要
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\CKeyword{多模式智能系统；Arduino；串口通信；学习辅助系统；传感器系统}
+\CKeyword{细胞分割；Otsu算法；分水岭算法；U-Net}
 
 \twocolumn[
   \begin{@twocolumnfalse}
@@ -77,7 +77,7 @@
 % \positiontextbox{2.2cm}{2.9cm}{\wuhao http://bhxb.buaa.edu.cn \quad  jbuaa@buaa.edu.cn\\[0.3cm]
 % \wuhao DOI: \ 10.13700/j.bh.1001-5965.****.****}
 \begin{CAbstractJBUAA}
-摘要啊啊啊啊啊
+本实验希望实现对细胞图像实现细胞分割，以完成在医学领域的细胞计数工作。本实验以Otsu算法为起点，在观察到存在细胞粘连问题后，引入分水岭算法和U-Net算法进行进一步改善。
 \end{CAbstractJBUAA}
 %%%%%%%%首页角注
 \positiontextbox{2.0cm}{25.5cm}{
@@ -178,41 +178,14 @@
 
 \begin{thebibliography}{10}
 
+\bibitem{otsu}
+[邓子青,王阳,张兵,等.基于Otsu算法与形态学的火龙果图像分割研究[J].智能计算机与应用,2022,12(06):106-109+115.
+
+\bibitem{watershed}
+游迎荣,范影乐,庞全.基于距离变换的粘连细胞分割方法[J].计算机工程与应用,2005,(20):206-208.
+
 \bibitem{unet}
 Ronneberger, O., Fischer, P., & Brox, T. (2015). U-Net: Convolutional Networks for Biomedical Image Segmentation. MICCAI 2015, 234-241. Springer, Cham. DOI: 10.1007/978-3-319-24574-4_28
 
 % 如果有换页问题，使用\newpage，这一段由zyc更改，上面这个是我需要引用的参考文献
 
-\bibitem{badamasi2014}
-BADAMASI Y A. The working principle of an Arduino[C]//2014 11th International Conference on Electronics, Computer and Computation (ICECCO). Abuja, Nigeria: IEEE, 2014: 1–4. doi:10.1109/ICECCO.2014.6997578.
-
-\bibitem{asadi2023}
-ASADI F. Serial Communication[M]//Essentials of Arduino™ Boards Programming: Step-by-Step Guide to Master Arduino Boards Hardware and Software. Berkeley, CA: Apress, 2023: 179–199.
-
-\bibitem{evans2011}
-EVANS B. Serial and I2C[M]//Beginning Arduino Programming. Berkeley, CA: Apress, 2011: 175–200.
-
-\bibitem{akinwole2018}
-AKINWOLE O O, OLADIMEJI T T. Design and implementation of Arduino microcontroller based automatic lighting control with I2C LCD display[J]. Journal of Electrical and Electronic Systems, 2018, 7(258): 2332–0796.1000258.
-
-\bibitem{github2023}
-LEOTS. Arduino-PC-Monitor[EB/OL]. https://github.com/leots/Arduino-PC-Monitor, 2023-12-20.
-
-\bibitem{hackster2023}
-GGARCIA. DIY PC Stats Monitor[EB/OL]. https://www.hackster.io/ggarciacompanys/diy-pc-stats-monitor-2eb973, 2023-10-15.
-
-\bibitem{arduinoSerial}
-ANSH2919. Serial communication between Python and Arduino[EB/OL]. https://projecthub.arduino.cc/ansh2919/serial-communication-between-python-and-arduino-663756, 2022-08-02.
-
-\bibitem{deepseek2024}
-DeepSeek. DeepSeek API Documentation[EB/OL]. https://api-docs.deepseek.com/zh-cn/, 2024-01-10.
-
-\bibitem{santos2023}
-DOS SANTOS D A, SILVA H P S, DOS ANJOS COSTA D. Desenvolvimento de um Braço Robótico controlado por Joystick[C]//Escola Regional de Computação Bahia, Alagoas e Sergipe (ERBASE). SBC, 2023: 82–91.
-
-\bibitem{premendran2022}
-PREMENDRAN K, KULATUNGA U, JAYASINGHE A et al. Assistant Zone – Homeschooling Assistance System based on Natural Language Processing[C]//2022 4th International Conference on Advancements in Computing (ICAC). Colombo, Sri Lanka: IEEE, 2022: 13–17. doi:10.1109/ICAC57685.2022.10025201.
-
-\end{thebibliography}
-
-\end{document}
