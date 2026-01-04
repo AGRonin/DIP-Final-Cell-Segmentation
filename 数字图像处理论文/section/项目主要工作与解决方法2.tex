@@ -1,3 +1,20 @@
-\subsection{} 
+\subsection{使用U-Net进行前后景分割}
+
+如上文所言，我们在使用简单二值化方法时发现，二值化方法具有阈值不好确定、对于特殊图像效果极差的问题，所以我们考虑引入常用于医学图像分割的U-Net进行前后景分割。
+
+由于这里我们只是引入U-Net卷积神经网络作为一个小小的步骤，而不是整个流程的核心，所以也不算是违背了最好不要使用神经网络简单训练一个模型的要求。
+
+具体来讲，对于训练集，我们以其原图像和结果细胞图（原数据集中每个细胞一张图，这里将其合并为一张图）作为样本和标签，使U-Net具有能够区分每个点是前景（细胞）的概率，然后根据概率给定阈值，高于阈值的则认为其为细胞的组成部分，反之则认为其为背景。
+
+首先，我们测试仅改变二值化方法（简单二值化、U-Net二值化），即U-Net+自适应分水岭方法+对原图使用分水岭。依然考虑我们四张典型图片，分割结果如图~\ref{fig:unet+zi+yuan:totalresult}。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/unet模型.png}
+\bicaption[fig:unet+zi+yuan:totalresult]{图}{\centering 改进的基于U-Net做前景标记的自适应分水岭结果}{Fig.}{\centering The Result of Improved adaptive watershed with U-Net foreground markers}
+\end{figure}
+
+观察结果图，我们可以看到
+
 %这一部分由ybw写，合理分段，subsection代表一、1.这个级别
 主要内容应当包括：U-Net系列全部、后续
