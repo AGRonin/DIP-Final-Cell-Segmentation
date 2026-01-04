@@ -1,1 +1,22 @@
 \subsection{Otsu算法讲解} %jhr
+Otsu算法是一类基于图像灰度直方图的自动阈值分割方法。其基本思想是通过最大化类间方差来确定最佳阈值，从而将图像分割为前景和背景两部分。Otsu算法的步骤如下：
+\begin{enumerate}[itemsep=0pt,topsep=2pt]
+    \item 计算输入图像的归一化直方图。使用$p_i$表示该直方图的各个分量。
+    \item 用下式，对k=0到L-1（L为灰度级数），计算累计和$p_1(k)$。
+    \begin{equation}
+        p_1(k) = \sum_{i=0}^{k} p_i
+    \end{equation}
+    \item 用下式，计算累计均值$m(k)$。
+    \begin{equation}
+        m(k) = \sum_{i=0}^{k} i \cdot p_i
+    \end{equation}
+    \item 计算全局灰度均值$m_G$。
+    \begin{equation}
+        m_G = \sum_{i=0}^{L-1} i \cdot p_i
+    \end{equation}
+    \item 对于k=0到L-1，计算类间方差$\sigma^2_B(k)$。
+    \begin{equation}
+        \sigma^2_B(k) = \frac{[m_G \cdot p_1(k) - m(k)]^2}{p_1(k) \cdot [1 - p_1(k)]}
+    \end{equation}
+    \item 得到最大类间方差对应的k值，即为最佳阈值$k^*$。
+\end{enumerate}
