@@ -1,3 +1,25 @@
-\subsection{} 
+\subsection{U-Net算法参数选取} 
 %这一部分由ybw写，合理分段，subsection代表一、1.这个级别
-主要内容应当包括：U-Net系列全部、后续
+在引入U-Net的算法中，我们使用了基于局部极大值的分水岭算法进行了注水点的选取。而在这个过程中，我们同样设定一个阈值——两个注水点之间的最小距离，以避免选取过于接近的注水点，导致过分割问题。同样，这个阈值是依赖于局部区域的距离最大值乘以一个比例系数来确定的。在实验过程中，我们尝试了0.5、0.6、0.7、0.8、0.9、0.95六个不同的比例系数，分别进行细胞分割实验，并计算其细胞分割数量的平均相对误差。实验结果如表~\ref{tab:U-Net算法参数选取结果}所示。
+\begin{table}[htbp]
+\centering
+\captionnamefont{\xiaowuhao\bf}
+\captiontitlefont{\xiaowuhao\bf}
+\bicaption[labelTabU-Net算法参数选取结果]{表}{U-Net算法参数选取结果}{Table}{The Result of U-Net Algorithm Parameter Selection}
+\renewcommand\tabcolsep{1em}
+\xiaowuhao
+\begin{tabular}{cc}
+\toprule
+{最小距离比例} & {平均相对误差} \\
+\midrule
+0.5 & 0.1340 \\
+0.6 & 0.1335 \\
+0.7 & 0.1335 \\
+0.8 & 0.1337 \\
+0.9 & 0.1334 \\
+0.95 & 0.1335 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+可以发现，当最小距离比例设定为0.9时，分割效果最佳，平均相对误差最低，为0.1334。因此，在后续的U-Net算法实验中，我们均采用该参数进行细胞分割。

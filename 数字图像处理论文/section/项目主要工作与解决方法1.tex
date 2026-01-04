@@ -1,3 +1,72 @@
-\subsection{使用otsu与分水岭算法进行细胞分割} 
+\subsection{实验总流程} 
 %这一部分由jhr写，合理分段，subsection代表一、1.这个级别
-主要内容应当包括：实验总流程、视觉与数值结果判断、实验总Otsu、二值化部分全部（这一部分之中加入结果图就行，后面不需要再单独分析了）。
+本实验将以传统的阈值分割算法——Otsu算法为起点，结合分水岭算法和深度学习中的U-Net模型，逐步优化细胞分割的效果。
+其中，分水岭算法将采用基于距离变化和基于局部极大值的注水点选取方法，分别观察细胞分割效果的提升情况，并尝试引入梯度进行进一步的效果优化。
+最后，我们将引入U-Net模型进行前后景分割，结合前述的分水岭算法，进一步提升细胞分割的准确性，在这一部分中，我们将分别采取形态学，固定/可变阈值以及梯度的手段来分别优化分水岭算法的效果。
+具体的实验流程如图~\ref{fig:experimentflow}所示。
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/流程图.png}
+\bicaption[fig:experimentflow]{图}{\centering 实验总流程图}{Fig.}{\centering Schematic Diagram of the Experimental Flow}
+\end{figure}
+
+在本次实验中，我们将通过视觉与数值两种方式对各个方法的分割效果进行评估。视觉评估主要通过观察分割结果图像(主要观察是否识别出所有细胞、细胞粘连问题是否解决以及是否存在过分割问题)，视觉效果将采用如图~\ref{fig:example}的样本图进行效果观察；数值评估则通过计算验证集中所有图片细胞分割数量的相对误差(基准细胞分割数量由kaggle平台提供)的平均值来评估，数值越小，则说明分割效果越好。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/原图.png}
+\bicaption[fig:example]{图}{\centering 样本图}{Fig.}{\centering Example of Sample Image}
+\end{figure}
+
+\subsection{使用Otsu算法进行细胞分割} 
+%这一部分由jhr写，合理分段，subsection代表一、1.这个级别
+如前文所述，Otsu算法是一种经典的基于图像灰度直方图的自动阈值分割方法。我们首先尝试使用Otsu算法对细胞图像进行二值化处理，以实现初步的细胞分割。实现步骤也较为简单，我们首先利用Otsu算法计算出最佳阈值(可调库)，然后根据阈值进行二值化处理(即前景与背景的划分)，最后对二值化结果进行连通域分析，统计细胞数量。分割结果如图~\ref{fig:基于Otsu算法的阈值分割结果}所示。
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/otsu.png}
+\bicaption[fig:基于Otsu算法的阈值分割结果]{图}{\centering 基于Otsu算法的阈值分割结果}{Fig.}{\centering The Result of Otsu Algorithm-based Threshold Segmentation}
+\end{figure}
+
+首先，该算法细胞分割数量的平均相对误差为0.2920，可以发现效果并不理想。我们再观察图~\ref{fig:基于Otsu算法的阈值分割结果}，可以发现该方法在处理细胞粘连问题上表现较差，许多粘连的细胞被错误地识别为单个细胞，导致分割数量偏少。并且，我们发现当噪声较大，或者细胞粘连十分严重时，Otsu算法无法有效地分割细胞。
+
+\subsection{使用基于距离变换的分水岭算法进行细胞分割}
+观察发现，基于Otsu算法的细胞分割效果并不理想，存在着细胞粘连无法分割等问题。而我们知道，分水岭算法在处理图像分割问题上具有较好的效果，尤其是在处理粘连物体的分割上表现突出。因此，我们尝试引入分水岭算法来改进细胞分割效果。需要注意的是，对于分水岭算法来说，预处理过程尤其重要，主要分为两个部分：二值化过程——用于确定前景和背景；注水点选取——选取细胞的核心区域。在这里，我们主要考虑如何选取注水点，二值化过程我们仍然采用Otsu算法进行处理。注水点的选取我们将采取基于距离变换和基于局部极大值两种方法，分别观察其分割效果。
+
+首先，我们介绍基于距离变换的注水点选取方法。具体来说，我们首先对二值化结果进行距离变换，得到每个前景像素点到最近背景像素点的距离值。然后，我们通过设定一个阈值——前景到背景最大的距离的某个比例，来选取注水点。我们认为，当距离值大于设定阈值时，则像素点距离背景边界越远，则越可能属于细胞的核心区域，因此我们将这些点作为注水点。接着，我们从这些注水点开始不断地向外膨胀，直到遇到背景或两个膨胀区域相遇为止，建立分水岭线，完成细胞的分割。分割结果如图~\ref{fig:基于距离变换的分水岭结果}所示。
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/基于距离变换的分水岭算法.png}
+\bicaption[fig:基于距离变换的分水岭算法结果]{图}{\centering 基于距离变换的分水岭结果}{Fig.}{\centering The Result of Distance Transform-based Watershed Segmentation}
+\end{figure}
+
+该算法的细胞分割数量的平均相对误差为0.2644，相较于单纯的Otsu算法有了显著提升。观察图~\ref{fig:基于距离变换的分水岭算法结果}，可以发现该算法在处理细胞粘连问题上有了一定的改善，相较于单纯的Otsu算法，可以对一些粘连细胞进行分割，但是仍然存在大部分粘连细胞无法分割的问题。此外，当噪声较大，或者细胞粘连十分严重时，同Otsu算法一样，无法有效地分割细胞。
+
+\subsection{使用基于局部极大值的分水岭算法进行细胞分割}
+接下来，我们介绍基于局部极大值的注水点选取方法。由于基于距离变换的方法的距离阈值是基于全局信息设定的，且是固定的。那么，当设定的阈值过大时，可能会出现某些距离背景过近的细胞核心区域无法被选取为注水点，导致这些细胞无法被分割；而当设定的阈值过小时，则会出现粘连细胞的注水点过于接近从而识别为同一个连通区域，无法进行粘连细胞的有效分割。为了解决上述问题，我们引入了自适应的基于局部极大值的注水点选取方法。
+
+具体来说，我们首先对二值化结果进行距离变换。然后，我们考虑每个前景像素点与其周围前景像素点的距离值进行比较，若该像素点的距离值大于其所有周围像素点的距离值，则认为该像素点为局部极大值点，即细胞的核心区域。接着，我们从这些注水点开始不断地向外膨胀，直到遇到背景或两个膨胀区域相遇为止，建立分水岭线，完成细胞的分割。分割结果如图~\ref{fig:基于局部极大值的分水岭结果}所示。
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/基于局部极大值的分水岭.png}
+\bicaption[fig:基于局部极大值的分水岭结果]{图}{\centering 基于局部极大值的分水岭结果}{Fig.}{\centering The Result of Local Maxima-based Watershed Segmentation}
+\end{figure}
+
+该算法的细胞分割数量的平均相对误差为0.2318，相较于基于距离变换的分水岭算法有了进一步提升。观察图~\ref{fig:基于局部极大值的分水岭结果}，可以发现该算法在处理细胞粘连问题上表现更好，能够有效地分割大部分粘连细胞。但是，仍然存在小部分粘连细胞无法分割的问题。并且，该算法有了新的问题——过分割问题，会发现有些单个细胞被错误地分割成多个部分，导致分割数量偏多。同时，当噪声较大或粘连细胞过于严重时，仍然无法有效地分割细胞。
+
+\subsection{使用梯度优化分水岭算法进行细胞分割}
+基于教材的说法，分水岭分割的主要应用之一是从背景中提取近乎一致的物体。由变化较小的灰度表征的区域有较小的梯度值。因此，我们经常见到分水岭分割方法用于一幅图像的梯度，而不是图像本身。为此，我们尝试在前述的两种分水岭算法的基础上，引入梯度信息来优化分割效果。
+
+我们首先对梯度图像进行归一化处理，然后将归一化后的梯度图像与二值化图像进行加权融合，得到新的图像。接着，我们分别在基于距离变换和基于局部极大值的分水岭算法中，使用该融合图像进行注水点选取和分割。分割结果如图~\ref{fig:基于距离变换的梯度优化分水岭结果}和图~\ref{fig:基于局部极大值的梯度优化分水岭结果}所示。
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/基于距离变换的梯度优化分水岭结果.png}
+\bicaption[fig:基于距离变换的梯度优化分水岭结果]{图}{\centering 基于距离变换的梯度优化分水岭结果}{Fig.}{\centering The Result of Gradient-optimized Distance Transform-based Watershed Segmentation}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/基于局部极大值的梯度优化分水岭结果.png}
+\bicaption[fig:基于局部极大值的梯度优化分水岭结果]{图}{\centering 基于局部极大值的梯度优化分水岭结果}{Fig.}{\centering The Result of Gradient-optimized Local Maxima-based Watershed Segmentation}
+\end{figure}
+
+基于距离变换的梯度优化分水岭结果和基于局部极大值的梯度优化分水岭结果的细胞分割数量的平均相对误差分别为0.2644和0.2318。观察图~\ref{fig:基于局部极大值的梯度优化分水岭结果}和图~\ref{fig:基于局部极大值的分水岭结果}，可以发现引入梯度信息后，算法并没有进一步得到改善。

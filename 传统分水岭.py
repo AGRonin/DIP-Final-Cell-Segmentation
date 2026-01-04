@@ -26,7 +26,7 @@ def denoise_image(img):
 
 IMG_SIZE = 256
 TRAIN_PATH = "../data-science-bowl-2018/stage1_train/"
-RESULT_DIR = "result_传统"
+RESULT_DIR = "result_传统_0.3"
 os.makedirs(RESULT_DIR, exist_ok=True)
 
 seed = 42
@@ -60,7 +60,8 @@ for id_ in tqdm(test_ids):
         gt_mask = np.maximum(gt_mask, msk)
         gt_count += 1
     #将图像转为灰度图并进行高斯模糊
-    gray = rgb2gray(img)                
+    gray = rgb2gray(img)
+    blur = gray                
     blur = gaussian(gray, sigma=1)
     #利用otsu算法自动选取阈值并进行二值化
     thresh = filters.threshold_otsu(blur)
@@ -73,7 +74,7 @@ for id_ in tqdm(test_ids):
     sure_bg = morphology.dilation(opening, selem)
     #进行距离变换以选取细胞的核心区域
     distance = ndi.distance_transform_edt(opening)
-    sure_fg = distance > 0.2 * distance.max()
+    sure_fg = distance > 0.5 * distance.max()
     #计算unknown区域(即要确定是细胞区域、背景区域还是边界区域)
     unknown = sure_bg & (~sure_fg)
     #为每一个细胞区域分配一个标记
