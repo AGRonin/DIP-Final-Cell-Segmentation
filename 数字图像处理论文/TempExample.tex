@@ -77,7 +77,7 @@
 % \positiontextbox{2.2cm}{2.9cm}{\wuhao http://bhxb.buaa.edu.cn \quad  jbuaa@buaa.edu.cn\\[0.3cm]
 % \wuhao DOI: \ 10.13700/j.bh.1001-5965.****.****}
 \begin{CAbstractJBUAA}
-本实验希望实现对细胞图像实现细胞分割，以完成在医学领域的细胞计数工作。本实验以Otsu算法为起点，在观察到存在细胞粘连问题后，引入分水岭算法和U-Net算法进行进一步改善。
+细胞分割是生物医学图像分析中的关键问题之一，其目标是在图像中准确区分并定位单个细胞。本实验以Otsu算法和传统分水岭算法为起点，通过不断对结果的分析进行方法的改进。本实验发现，非细胞因素对于传统Otsu算法、分水岭算法的结果影响较大且该方法不能很好的分割粘连细胞。针对上述问题，本文在传统分水岭算法上不断加以改进，最终提出一种结合U-Net分割前景与背景、形态学分析、基于细胞自适应参数的极大值点作为注水点与分水岭算法进行融合改进。该方法采用U-Net网络对细胞前景进行语义分割，获得细胞概率图。随后对概率图进行二值化与距离变换，基于形态学特征判断是否已经为合适的细胞，通过基于细胞自适应参数的局部极大值检测生成初始注水点。进一步地，将距离变换结果与图像梯度信息进行加权融合，并基于此利用分水岭算法实现细胞实例分割。实验在 Data Science Bowl 2018 细胞数据集上进行，结果表明，所提出的方法在细胞数量估计与实例分割质量方面均取得了较好的效果，相比基础分水岭方法显著降低了计数误差。
 \end{CAbstractJBUAA}
 %%%%%%%%首页角注
 \positiontextbox{2.0cm}{25.5cm}{
@@ -100,73 +100,37 @@
 %%%%%！！！！！正文在第一页两栏分别合适位置插入 \enlargethispage{-3.3cm}，给首页跨双栏脚注留空间，大小需要结合前面位置和高度手动设置！！！！！
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\enlargethispage{-2cm}% 这个是干啥的我也没太懂，反正大概能空行
+\enlargethispage{-2.1cm}% 这个是干啥的我也没太懂，反正大概能空行
 
-\input{section/项目背景与意义}
+\input{section/项目背景与意义}% zyc
 
-\input{section/实验数据说明}
+\enlargethispage{-2.1cm}% 这个是干啥的我也没太懂，反正大概能空行
+
+\input{section/实验数据说明}% zyc
 
 \section{模型原理}
 
-\input{section/Otsu算法讲解}
+\input{section/Otsu算法讲解}% jhr
 
-\input{section/分水岭算法讲解}
+\input{section/分水岭算法讲解}% jhr
 
-\input{section/U-Net模型讲解}
+\input{section/U-Net模型讲解}% ybw
 
 \section{项目主要工作与解决方法}
 
-\input{section/项目主要工作与解决方法1}
+\input{section/项目主要工作与解决方法1}% jhr
 
-\input{section/项目主要工作与解决方法2}
+\input{section/项目主要工作与解决方法2}% ybw
 
-\input{section/实验结果展示及分析}
+\input{section/实验结果展示及分析}% ybw
 
 \section{消融实验}
 
-\input{section/消融实验1}
+\input{section/消融实验1}% jhr
 
-\input{section/消融实验2}
+\input{section/消融实验2}% jhr
 
-\input{section/总结}
-
-% 表格示例，VScode中ctrl+？可以直接去掉所有的注释，选中你要去掉注释的行
-% \begin{table}[h]
-% \centering
-% \captionnamefont{\xiaowuhao\bf}
-% \captiontitlefont{\xiaowuhao\bf}
-% \bicaption[labelTabArduino]{表}{Arduino 接口硬件模块说明表}{Table}{Arduino Interface Hardware Module Description}
-% \renewcommand\tabcolsep{1em}
-% \xiaowuhao
-% \begin{tabular}{cccc}
-% \toprule
-% {硬件} & {引脚} & {说明} \\
-% \midrule
-% 温湿度传感器 & D3 & DHT库读取 \\
-% 光敏电阻 & A3 & 读取电压 \\
-% 超声波Trig & D4 & 发出超声波 \\
-% 超声波Echo & D5 & 接收反射波 \\
-% 摇杆X轴 & A0 & 左右方向 \\
-% 摇杆Y轴 & A1 & 上下方向 \\
-% 摇杆按下& D2 & 按下复位 \\
-% 蜂鸣器 & D6 & 低电平响 \\
-% LED红 & D9 & 红色亮度 \\
-% LED绿 & D10 & 绿色亮度 \\
-% LED蓝 & D11 & 蓝色亮度 \\
-% 显示器SDA & A4 & 通信数据线 \\
-% 显示器SCL & A5 & 通信时钟线 \\
-% \bottomrule
-% \end{tabular}
-% \end{table}
-
-% 图片放置示例。
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=\linewidth,trim=0 0 0 0]{./image/unet模型.png}
-% \bicaption[fig:unet]{图}{\centering U-Net模型原理示意图}{Fig.}{\centering Schematic Diagram of the U-Net Model}
-% \end{figure}
-
-
+\input{section/总结}% zyc
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %  参考文献
@@ -179,14 +143,22 @@
 \begin{thebibliography}{10}
 
 \bibitem{otsu}
-邓子青,王阳,张兵,等.基于Otsu算法与形态学的火龙果图像分割研究[J].智能计算机与应用,2022,12(06):106-109+115.
+OTSU N. A threshold selection method from gray-level histograms[J].
+IEEE Transactions on Systems, Man, and Cybernetics, 1979, 9(1): 62--66.
+doi: \texttt{10.1109/TSMC.1979.4310076}.
 
 \bibitem{watershed}
-游迎荣,范影乐,庞全.基于距离变换的粘连细胞分割方法[J].计算机工程与应用,2005,(20):206-208.
+BEUCHER S, LANTU\'EJOUL C.
+Use of watersheds in contour detection[C]//
+Workshop on Image Processing, Real-Time Edge and Motion Detection.
+1979.
 
 \bibitem{unet}
-Ronneberger, O., Fischer, P., \& Brox, T. (2015). U-Net: Convolutional Networks for Biomedical Image Segmentation. MICCAI 2015, 234-241. Springer, Cham. DOI: 10.1007/978-3-319-24574-4\_28
+Ronneberger, O., Fischer, P., \& Brox, T. (2015). U-Net: Convolutional Networks for Biomedical Image Segmentation.
+MICCAI 2015, 234-241. Springer, Cham.
+doi: \texttt{10.1007/978-3-319-24574-4\_28}
 
 % 如果有换页问题，使用\newpage，这一段由zyc更改，上面这个是我需要引用的参考文献
+\end{thebibliography}
 
 \end{document}

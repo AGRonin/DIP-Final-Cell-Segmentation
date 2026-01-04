@@ -1,12 +1,12 @@
+实际上，本次实验过程为不断累加模块的过程，每个模块的包含与不包含均在第四章有完整的阐述。逆向看整个实验的过程即为消融实验的过程。因此，本章中不再进行消融实验的重复阐述，仅说明超参数选取的相关内容。
+
 \subsection{传统分水岭算法参数选取} 
-实际上，本次实验过程为不断累加模块的过程，每个模块的包含与不包含均在第四章有完整的阐述。逆向看整个实验的过程即为消融实验的过程，为此，这里不再做过多的消融实验的阐述，仅进行超参数选取的展示。
-%这一部分由jhr写，合理分段，subsection代表一、1.这个级别
 在传统分水岭算法中，参数的选取对于分割效果有着重要影响。我们在前面说到，当距离阈值的选取不合适时，可能会导致某些细胞无法被识别，或者出现细胞粘连无法分割的问题。而我们的距离阈值选取主要依赖于距离变换结果的最大值的某个比例。因此，我们尝试调整该比例参数，以观察其对分割效果的影响。在本次实验中，我们选取了0.1、0.2、0.3、0.4、0.5、0.6六个不同的比例参数，分别进行细胞分割实验，并计算其细胞分割数量的平均相对误差。实验结果如表~\ref{tab:labelTab传统分水岭算法参数选取结果}所示。
-\begin{table}[H]
+\begin{table}[htbp]
 \centering 
 \captionnamefont{\xiaowuhao\bf}
 \captiontitlefont{\xiaowuhao\bf}
-\bicaption[tab:labelTab传统分水岭算法参数选取结果]{表}{传统分水岭算法参数选取结果}{Table}{The Result of Traditional Watershed Algorithm Parameter Selection}
+\bicaption[tab:labelTab传统分水岭算法参数选取结果]{表}{\centering 传统分水岭算法参数选取结果}{Table}{\centering The Result of Traditional Watershed Algorithm Parameter Selection}
 \renewcommand\tabcolsep{1em}
 \xiaowuhao 
 \begin{tabular}{cc}

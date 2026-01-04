@@ -1,5 +1,5 @@
-\subsection{Otsu算法讲解} %jhr
-Otsu算法是一类基于图像灰度直方图的自动阈值分割方法。其基本思想是通过最大化类间方差来确定最佳阈值，从而将图像分割为前景和背景两部分。Otsu算法的步骤如下：
+\subsection{Otsu算法讲解} % jhr
+Otsu算法是一类基于图像灰度直方图的自动阈值分割方法\textsuperscript{\cite{otsu}}。其基本思想是通过最大化类间方差来确定最佳阈值，从而将图像分割为前景和背景两部分。Otsu算法的步骤如下：
 \begin{enumerate}[itemsep=0pt,topsep=2pt]
     \item 计算输入图像的归一化直方图。使用$p_i$表示该直方图的各个分量。
     \item 用下式，对$k$ ($k=0,1,...,L-1$)（$L$为灰度级数），计算累计和$p_1(k)$。
