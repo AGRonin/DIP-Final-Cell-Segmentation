@@ -1,6 +1,85 @@
 \section{实验结果展示及分析}
-%这一部分由ybw写，合理分段，subsection代表一、1.这个级别
-主要内容应当包括：总实验结果图
 
 在本章中，我们将聚焦于\textbf{改进的基于U-Net做前景标记的加入形态学判断的使用变阈值的使用梯度-概率加权图像的自适应分水岭}结果，进行一定的分析，并且给出后续可能的改进方向。
 
+\subsection{实验结果展示及分析}
+
+首先，我们连续展示六张结果图。这些图都来自于改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果，包括四个子图，从左到右依次是原图、GT Mask（答案图）、对哪张图做分水岭（加权图）、划分结果。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/result1.png}
+\bicaption[fig:result1]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果1}{Fig.}{\centering The Result1 of U-Net-based Adaptive Watershed Using Gradient–Probability Weighted Images}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/result2.png}
+\bicaption[fig:result2]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果2}{Fig.}{\centering The Result2 of U-Net-based Adaptive Watershed Using Gradient–Probability Weighted Images}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/result3.png}
+\bicaption[fig:result3]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果3}{Fig.}{\centering The Result3 of U-Net-based Adaptive Watershed Using Gradient–Probability Weighted Images}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/result4.png}
+\bicaption[fig:result4]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果4}{Fig.}{\centering The Result4 of U-Net-based Adaptive Watershed Using Gradient–Probability Weighted Images}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/result5.png}
+\bicaption[fig:result5]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果5}{Fig.}{\centering The Result5 of U-Net-based Adaptive Watershed Using Gradient–Probability Weighted Images}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/result6.png}
+\bicaption[fig:result6]{图}{\centering 改进的基于U-Net做前景标记的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果6}{Fig.}{\centering The Result6 of U-Net-based Adaptive Watershed Using Gradient–Probability Weighted Images}
+\end{figure}
+
+首先，我们来看图~\ref{result4}，这张图展示了在细胞粘连较为简单的情况下，我们的算法可以完美的做出正确分割。这也是我们最为期望的，希望所有图片都像这张图一样完美。
+
+接着，我们来看图~\ref{result5}，这张图展示了在细胞粘连较为复杂的情况下，我们的算法基本可以做出正确分割，但对于过于粘连的情况仍然无法进行很有效的切割。
+
+对应的，我们来看图~\ref{result3}，这张图展示了在细胞粘连较为复杂的情况下，可能出现虽然我们分割的细胞数量正确，但是是由于同时存在欠分割和过分割导致的，这也就说明了在本问题中，正如第4.1节所说，细胞数量平均相对误差并不能作为唯一的判断结果是否优秀的标准，还需要参考视觉结果。对于这张图而言，我们的结果只在右上角一个地方出现了一组过分割-欠分割。并且，从这张图可以看出，我们的算法能够察觉到一些人眼很难看出的细胞并予以分割出来，这是非常优秀的。
+
+然后，我们来看图~\ref{result6}，这张图的右下角我们会发现两个在图像边缘上的特别小的细胞没有被正确分割出来，也就是说我们的算法对于只存在很小一部分的细胞的识别能力是较差的，对于边界情况的处理是不够好的。
+
+最后，我们回到图~\ref{result1}和图~\ref{result2}，这两张图向我们展示了对于非常复杂的原始图像，我们的算法存在一定的欠分割问题或者分割不正确问题，但是对于绝大多数的细胞能够做出正确的分割。这是难能可贵的，对于剩下的一部分小误差，可以通过人工进行一定的调节。
+
+\subsection{可能的改进方向}
+
+首先，我们注意到U-Net做前景标记的一个问题，命名为“空心现象”。空心现象指的是当U-Net的前景标记结果中，可能出现一个（或多个）完整的连续细胞中间出现空洞（即不被U-Net认为是细胞）的情况，如图~\ref{fig:空心}所示，在Binary子图的上方中心，有一个明显的空心现象，在其他的细胞中也存在一些。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/空心.png}
+\bicaption[fig:空心]{图}{\centering 空心现象示例图}{Fig.}{\centering Hollow Artifact Example}
+\end{figure}
+
+这些空心现象导致，在做分水岭时，中间部分被认为是背景，从而被割裂开。这是U-Net的最大问题。如果能够解决这个问题，我们相信结果会更上一个层次。
+
+我们试图回到传统的二值化方法进行前后景区分，即改进的加入形态学判断的使用变阈值的使用梯度-概率加权图像的自适应分水岭。其结果如图~\ref{fig:binary+zi+bian+xing+quan:totalresult}。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/改进+变+形+权.png}
+\bicaption[fig:binary+zi+bian+xing+quan:totalresult]{图}{\centering 改进的加入形态学判断的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果}{Fig.}{\centering The Result of Improved Adaptive Watershed with Morphology and Weighted Images}
+\end{figure}
+
+其效果明显变差，数值结果为0.1678，对于第一、三、四图，都有着极大的问题。这表明相较于U-Net的空心问题，二值化受原始图片影响更加严重。
+
+所以我们想到使用U-Net+二值化的混合方法，我们既需要考虑二值化结果，也需要考虑U-Net结果，二者共同进行前后景分类，从而达到更好的效果。由于时间关系我们只尝试了如果U-Net的前景占比与二值化的前景占比差距过大，则将二值化的前后景反转（这是因为对于部分图片，其本身底色为白色，二值化没有针对这些进行特别的考虑）。该方法的数值结果为0.1861（更差了一些），这里不再放图片。但我们依然认为这是一条可行的道路，比如考虑让二者投票或者利用二值化结果/U-Net结果确定对方的前后景阈值。
+
+之所以认为这是一个可行的改进方向，因为对于图~\ref{fig:mix}，其他的所有方法得到的分割结果都不超过10，只有我们尝试的这个二值化+U-Net将其进行了一定的分割。所以我们认为这种方法是具有可取之处的。
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\linewidth,trim=0 0 0 0]{./image/mix.png}
+\bicaption[fig:mix]{图}{\centering 改进的基于U-Net及二值化方法混合做前景标记的加入形态学判断的使用变阈值的使用梯度-概率加权图像的自适应分水岭结果}{Fig.}{\centering The Result of Hybrid Watershed (U-Net + Binarization) with Morphology and Weighted Images}
+\end{figure}
