@@ -4,32 +4,25 @@
 本研究采用2018 Data Science Bowl 细胞核分割挑战赛的公开数据集作为实验数据。该数据集数据质量高：图像由专业生物学家标注，分割标签精确可靠；多样性丰富：包含多种细胞类型、不同染色方法、不同显微镜获取的图像；挑战性适中：包含不同粘连程度的细胞，适合验证本方法的有效性；社区认可度高：被广泛用作细胞分割的基准数据集，便于结果对比。
 
 \subsection{数据集使用说明}
-在DSB2018数据集中，我们仅使用stage1\_train子集，图像尺寸在$256\times256$至$1024\times1024$像素之间，涵盖了多种细胞类型和染色方法。
-数据集中细胞粘连程度分布均匀，包含轻度、中度和重度粘连样本。
+在DSB2018数据集中，我们仅使用stage1\_train子集，图像尺寸在$256\times256$至$1024\times1024$像素之间，涵盖了多种细胞类型和染色方法，数据集中细胞粘连程度分布均匀，包含轻度、中度和重度粘连样本。在实验的过程中，我们将所有的图像尺寸都转化成了$256\time256$。
 
 为确保实验的可靠性与结果的可比性，我们将数据集按$70\%:15\%:15\%$的比例划分为训练集、验证集和测试集。
 
 \subsection{四张典型图像选择说明}
-选择典型图像的考虑因素：
-\begin{enumerate}
-    \item 覆盖常见的细胞形态类型
-    \item 包含从易到难的多种分割挑战
-    \item 能够清晰展示方法的优势与局限
-    \item 便于与传统方法进行可视化对比
-\end{enumerate}
+选择典型图像的考虑因素：覆盖常见的细胞形态类型、包含从易到难的多种分割挑战、能够清晰展示方法的优势与局限、便于与传统方法进行可视化对比
 
 \subsubsection{典型图像1}
 原图特征：
 
-- 细胞形状：近似圆形或椭圆形
+细胞形状：近似圆形或椭圆形
 
-- 细胞分布：间距适中，轻度粘连
+细胞分布：间距适中，轻度粘连
 
-- 边界清晰度：边缘对比度较高
+边界清晰度：边缘对比度较高
 
-- 图像质量：光照均匀，噪声较少
+图像质量：光照均匀，噪声较少
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth,trim=0 0 0 0]{./image/分割_原图.jpg}
 \bicaption[fig:unet]{图}{\centering 典型图像一：分割}{Fig.}{\centering Typical Image 1: Segmentation Structure}
@@ -38,15 +31,15 @@
 \subsubsection{典型图像2}
 原图特征：
 
-- 细胞形状：细长形，放射状排列
+细胞形状：细长形，放射状排列
 
-- 细胞分布：中心紧密，向外辐射
+细胞分布：中心紧密，向外辐射
 
-- 边界清晰度：内部边界模糊，外部边界清晰
+边界清晰度：内部边界模糊，外部边界清晰
 
-- 图像质量：中心区域对比度较低
+图像质量：中心区域对比度较低
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth,trim=0 0 0 0]{./image/车轮_原图.png}
 \bicaption[fig:unet]{图}{\centering 典型图像二：车轮}{Fig.}{\centering Typical Image 2: Wheel Structure}
@@ -55,43 +48,41 @@
 \subsubsection{典型图像3}
 原图特征：
 
-- 细胞形状：多种形状混合
+细胞形状：多种形状混合
 
-- 光照条件：不均匀光照，存在光晕效应
+光照条件：不均匀光照，存在光晕效应
 
-- 图像伪影：显微镜光学系统产生的伪影
+图像伪影：显微镜光学系统产生的伪影
 
-- 噪声水平：中等噪声，有颗粒状纹理
-\begin{figure}[htbp]
+噪声水平：中等噪声，有颗粒状纹理
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth,trim=0 0 0 0]{./image/光_原图.png}
 \bicaption[fig:unet]{图}{\centering 典型图像三：光}{Fig.}{\centering Typical Image 3: Light Structure}
 \end{figure}
 
-
-
 \subsubsection{典型图像4}
 原图特征：
 
-- 细胞形状：环形（细胞核位于外围，中心透明）
+细胞形状：环形（细胞核位于外围，中心透明）
 
-- 细胞结构：具有明显的中空区域
+细胞结构：具有明显的中空区域
 
-- 边界特性：内外边界都需要准确分割
+边界特性：内外边界都需要准确分割
 
-- 图像对比度：内外部对比度差异大
-\begin{figure}[htbp]
+图像对比度：内外部对比度差异大
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth,trim=0 0 0 0]{./image/甜甜圈_原图.jpg}
 \bicaption[fig:unet]{图}{\centering 典型图像四：甜甜圈}{Fig.}{\centering Typical Image 4: Doughnut Structure}
 \end{figure}
 
-\subsubsection{GT-Mask图}
+\subsection{GT-Mask图}
 
-本实验由官方给出结果图（图2.5）作为调试基准，用来核验我们代码得到的图像以及结果。
+本实验由官方给出结果图~\ref{fig:mask}作为调试基准，用来核验我们代码得到的图像以及结果。
 
-\begin{figure}[htbp]
+\begin{figure}[H]
 \centering
 \includegraphics[width=\linewidth,trim=0 0 0 0]{./image/GT-Mask图.png}
-\bicaption[fig:unet]{图}{\centering GT-Mask图}{Fig.}{\centering Image : GT-Mask}
+\bicaption[fig:mask]{图}{\centering GT-Mask图}{Fig.}{\centering Image : GT-Mask}
 \end{figure}
